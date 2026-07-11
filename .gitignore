@@ -1,0 +1,47 @@
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# PHP / Composer
+vendor/
+composer.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+env/
+venv/
+ENV/
+env.bak/
+.venv/
+.env
+
+# IDEs
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+
+# Logs
+*.log
+
+# Build
+dist/
+build/
+
+# OneDrive temp files
+~$*
+*.lnk
+
+# Misc
+*.swp
+*.bak
+*.tmp

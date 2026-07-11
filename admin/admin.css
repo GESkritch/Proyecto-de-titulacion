@@ -1,0 +1,522 @@
+/* ==================== ESTILOS GLOBALES ==================== */
+/* Estilos base para todo el documento */
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to bottom, #ffffff, #e8f5ee);
+  margin: 0;
+  padding: 20px;
+  overflow-x: hidden;
+}
+
+h1 {
+  text-align: center;
+  color: #2c7a4b;
+}
+
+.admin-container {
+  max-width: 1200px;
+  margin: auto;
+  display: grid;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.card h2 {
+  margin-bottom: 15px;
+  color: #2c7a4b;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+}
+
+input, select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+button {
+  margin-top: 15px;
+  padding: 10px;
+  border: none;
+  background: #2c7a4b;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #256a3f;
+}
+
+/* ===== TABLA ===== */
+
+.tabla-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+/* ==================== TABLA ==================== */
+/* Estilos para la tabla de solicitudes */
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+  white-space: nowrap;
+}
+
+th {
+  background: #f2f2f2;
+}
+
+td:last-child {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+td:last-child button {
+  margin-top: 0;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+/* ==================== MODAL ==================== */
+/* Estilos para el modal de edición de solicitudes */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content h3 {
+  margin-bottom: 15px;
+  color: #2c7a4b;
+  text-align: center;
+}
+
+.modal-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-primary {
+  background: #2c7a4b;
+  color: white;
+  border-radius: 6px;
+  width: 100%;
+}
+
+.btn-secondary {
+  background: #ccc;
+  color: #da0a0a;
+  border-radius: 6px;
+  width: 100%;
+}
+
+/* ==================== ESTADOS ==================== */
+/* Colores y estilos para los diferentes estados de solicitudes */
+.estado-confirmado {
+  background: #fff3cd;
+  color: #856404;
+  font-weight: bold;
+}
+
+.estado-atendido {
+  background: #d4edda;
+  color: #155724;
+  font-weight: bold;
+}
+
+.estado-cancelado {
+  background: #f8d7da;
+  color: #721c24;
+  font-weight: bold;
+}
+
+/* ==================== BARRA SUPERIOR ==================== */
+/* Barra fija con información del usuario y botón logout */
+.top-bar {
+  position: fixed;
+  top: 15px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 2000;
+}
+
+.admin-user {
+  font-weight: bold;
+  color: #2c7a4b;
+}
+
+.btn-logout {
+  background: #c0392b;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-logout:hover {
+  background: #a93226;
+}
+
+/* ===== FILTROS (PANELES) ===== */
+.filter-panel {
+  background: #f7f9f8;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+  align-items: flex-end;
+}
+
+/* Responsive admin panel */
+@media (max-width: 900px) {
+  .admin-container { padding: 10px; grid-template-columns: 1fr; }
+  .card { padding: 12px; }
+  .filter-panel { min-width: 140px; }
+  table { min-width: 800px; }
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 20px; }
+  th, td { padding: 8px; font-size: 13px; }
+  .modal-content { width: 90%; }
+  td:last-child { display: flex; gap: 6px; flex-direction: column; }
+}
+
+.filter-panel label {
+  align-self: flex-start;
+  font-weight: 600;
+  color: #2c7a4b;
+}
+
+.filter-panel select {
+  width: 160px;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #cfd8dc;
+}
+
+.filter-panel button {
+  padding: 8px 10px;
+  margin-top: 4px;
+  border-radius: 6px;
+  background: #2c7a4b;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.filter-panel button:hover { background: #256a3f; }
+
+/* ==================== FILTROS SOLICITUDES ==================== */
+/* Controles de filtro para solicitudes (fecha, estado, etc.) */
+.solicitudes-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.filtro-fecha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filtro-fecha label {
+  font-weight: 600;
+  color: #2c7a4b;
+  margin: 0;
+}
+
+.filtro-fecha input {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #cfd8dc;
+  width: auto;
+}
+
+.filtro-fecha button {
+  padding: 6px 12px;
+  margin-top: 0;
+  background: #2c7a4b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.filtro-fecha button:hover {
+  background: #256a3f;
+}
+
+.filter-panel-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filters-row label { font-weight:600; color:#2c7a4b; }
+.filters-row input, .filters-row select { padding:6px; border-radius:6px; border:1px solid #cfd8dc; }
+.filters-row button { padding:8px 10px; border-radius:6px; background:#2c7a4b; color:#fff; border:none; cursor:pointer; }
+.filters-row button:hover { background:#256a3f; }
+
+.buttons-row { display:flex; gap:8px; flex-wrap:wrap; }
+.buttons-row button { padding:8px 10px; border-radius:6px; background:#2c7a4b; color:#fff; border:none; cursor:pointer; }
+.buttons-row button:hover { background:#256a3f; }
+
+/* ===== CALENDARIO ADMIN ===== */
+
+.calendar-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+/* ==================== CALENDARIO ==================== */
+/* Estilos para el calendario interactivo de selección de días */
+.calendar-controls select {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.admin-calendar {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  margin-bottom: 0;
+  font-weight: bold;
+  text-align: center;
+  color: #2c7a4b;
+  background: #f5f5f5;
+}
+
+.calendar-header div {
+  padding: 6px 0;
+  text-align: center;
+  border-bottom: 2px solid #2c7a4b;
+  font-size: 12px;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 8px 0;
+  margin-top: 8px;
+}
+
+.day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  background: #f5f5f5;
+  padding: 4px;
+}
+
+.day:hover {
+  border-color: #2c7a4b;
+  background: #f0f8f5;
+}
+
+.day.available {
+  background: #e8f5ee;
+  border-color: #4caf50;
+  color: #2c7a4b;
+}
+
+.day.available:hover {
+  background: #c8e6c9;
+}
+
+.day.disabled {
+  background: #f0f0f0;
+  border-color: #bbb;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.day.selected {
+  background: #2c7a4b;
+  color: white;
+  border-color: #2c7a4b;
+  font-weight: bold;
+}
+
+
+.legend {
+  /**
+   * Leyenda visual para los estados del calendario:
+   * - Verde: disponibilidad ya activada
+   * - Gris: días no disponibles
+   */
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.box {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 2px solid #ccc;
+}
+
+.legend .available.box {
+  background: #e8f5ee;
+  border-color: #4caf50;
+}
+
+.legend .disabled.box {
+  background: #f0f0f0;
+  border-color: #bbb;
+}
+
+.admin-day-panel {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  margin-top: 20px;
+}
+
+.admin-day-panel.hidden {
+  display: none;
+}
+
+.admin-day-panel h3 {
+  color: #2c7a4b;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.admin-day-panel label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 500;
+  color: #333;
+}
+
+.admin-day-panel input,
+.admin-day-panel select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.admin-day-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.admin-day-actions button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: #2c7a4b;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #256a3f;
+}
+
+.btn-danger {
+  background: #c0392b;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #a93226;
+}

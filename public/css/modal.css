@@ -1,0 +1,88 @@
+/**
+ * public/css/modal.css
+ * Estilos del modal global de confirmación
+ * 
+ * Componentes:
+ * - .modal-overlay: Fondo oscuro semitransparente que cubre toda la pantalla
+ * - .modal: Tarjeta blanca centrada con el contenido
+ * - .modal-actions: Contenedor de botones (Cancelar / Confirmar)
+ * - .modal-timer: Temporizador visible dentro del modal (e.g., "2m 30s")
+ * 
+ * Botones:
+ * - .btn-primary: Botón de acción primaria (azul, para confirmar)
+ * - .btn-secondary: Botón secundario (gris, para cancelar)
+ * 
+ * Estado:
+ * - .modal-overlay.hidden: Clase para ocultar el modal (display: none)
+ * 
+ * Z-index: 1000 (por encima de contenido pero debajo de login admin 3000)
+ */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/*
+    public/css/modal.css
+    - Estilos del modal global usado por `public/index.html`.
+    - Define la apariencia del overlay, la tarjeta modal y botones primarios/secundarios.
+*/
+
+.modal {
+    background: #ffffff;
+    padding: 25px;
+    width: 360px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    text-align: center;
+}
+
+.modal h3 {
+    margin-top: 0;
+    color: #0d47a1;
+}
+
+.modal p {
+    margin: 15px 0;
+    font-size: 0.95em;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.btn-primary {
+    background: #1976d2;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #eeeeee;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: #125aa0;
+}
+
+.hidden {
+    display: none;
+}
