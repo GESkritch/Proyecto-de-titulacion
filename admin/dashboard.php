@@ -49,7 +49,7 @@ if (isset($_SESSION['is_super']) && $_SESSION['is_super']) {
   <link rel="stylesheet" href="admin.css">
 </head>
 
-<body>
+<body data-is-super-admin="<?php echo $is_super ? '1' : '0'; ?>">
 
 <!-- BARRA SUPERIOR -->
 <div class="top-bar">
@@ -121,7 +121,7 @@ if (isset($_SESSION['is_super']) && $_SESSION['is_super']) {
     <input type="password" id="newAdminPassword" placeholder="contraseña segura">
 
     <button id="btnCrearAdmin">Crear Administrador</button>
-    <p style="font-size:0.9em;color:#666;margin-top:8px;">Solo superadministrador puede crear nuevas cuentas admin.</p>
+    <p style="font-size:0.9em;color:#666;margin-top:8px;">Solo un superadministrador puede crear nuevas cuentas de administrador.</p>
   </section>
   <!-- BORRAR ADMIN -->
   <section class="card">
@@ -131,9 +131,22 @@ if (isset($_SESSION['is_super']) && $_SESSION['is_super']) {
     <select id="existingAdmins" style="width:100%;padding:8px;margin-top:6px;border:1px solid #ccc;border-radius:4px;"></select>
 
     <button id="btnBorrarAdmin" style="background:#c0392b;margin-top:10px;">Borrar Administrador seleccionado</button>
-    <p style="font-size:0.9em;color:#666;margin-top:8px;">No se puede borrar a un superadmin ni a la cuenta actual.</p>
+    <p style="font-size:0.9em;color:#666;margin-top:8px;">No es posible borrar a un superadmin ni a la cuenta actual.</p>
   </section>
   <?php endif; ?>
+
+  <section class="card">
+    <h2>Exportar Registro</h2>
+
+    <label>Desde</label>
+    <input type="date" id="exportStartDate">
+
+    <label>Hasta</label>
+    <input type="date" id="exportEndDate">
+
+    <button id="btnExportarExcel" style="margin-top:10px;">Descargar Excel</button>
+    <p style="font-size:0.9em;color:#666;margin-top:8px;">Genera un archivo Excel con las personas ya atendidas en el rango de fechas elegido.</p>
+  </section>
 
   <!-- SOLICITUDES -->
   <section class="card">
@@ -185,6 +198,7 @@ if (isset($_SESSION['is_super']) && $_SESSION['is_super']) {
             <th>Hora Inicio</th>
             <th>Hora Fin</th>
             <th>Nombre</th>
+            <th>Apellido</th>
             <th>RUT</th>
             <th>Teléfono</th>
             <th>Correo</th>

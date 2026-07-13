@@ -35,14 +35,22 @@ $tipo = $data['tipo'] ?? 'Ambos';
 
 $db = get_db();
 
-// Insertar o actualizar por cada fecha
+$stmtCheck = $db->prepare('SELECT id FROM disponibilidad WHERE fecha = :fecha LIMIT 1');
 $stmtInsert = $db->prepare('INSERT INTO disponibilidad (fecha, hora_inicio, hora_fin, duracion_bloque, max_cupos, tipo, estado)
-    VALUES (:fecha, :hi, :hf, :block, :cupos, :tipo, 1)
-    ON CONFLICT(fecha) DO UPDATE SET hora_inicio = :hi, hora_fin = :hf, duracion_bloque = :block, max_cupos = :cupos, tipo = :tipo, estado = 1');
+    VALUES (:fecha, :hi, :hf, :block, :cupos, :tipo, 1)');
+$stmtUpdate = $db->prepare('UPDATE disponibilidad SET hora_inicio = :hi, hora_fin = :hf, duracion_bloque = :block, max_cupos = :cupos, tipo = :tipo, estado = 1 WHERE fecha = :fecha');
 
 while ($inicio <= $fin) {
     $fecha = $inicio->format('Y-m-d');
-    $stmtInsert->execute([':fecha'=>$fecha, ':hi'=>$horaInicio, ':hf'=>$horaFin, ':block'=>$bloque, ':cupos'=>$cupos, ':tipo'=>$tipo]);
+    $stmtCheck->execute([':fecha' => $fecha]);
+    $exists = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+    if ($exists) {
+        $stmtUpdate->execute([':fecha' => $fecha, ':hi' => $horaInicio, ':hf' => $horaFin, ':block' => $bloque, ':cupos' => $cupos, ':tipo' => $tipo]);
+    } else {
+        $stmtInsert->execute([':fecha' => $fecha, ':hi' => $horaInicio, ':hf' => $horaFin, ':block' => $bloque, ':cupos' => $cupos, ':tipo' => $tipo]);
+    }
+
     $inicio->modify('+1 day');
 }
 

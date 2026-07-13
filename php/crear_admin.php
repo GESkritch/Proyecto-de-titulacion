@@ -44,11 +44,12 @@ $rchk = $chk->fetch(PDO::FETCH_ASSOC);
 if ($rchk && intval($rchk['is_super']) === 1) {
     $isAllowed = true;
 } else {
-    // verificar tabla superadmin
-    $chk2 = $db->prepare('SELECT COUNT(1) as c FROM superadmin WHERE username = :u');
-    $chk2->execute([':u' => $current]);
-    $r2 = $chk2->fetch(PDO::FETCH_ASSOC);
-    if ($r2 && intval($r2['c']) > 0) $isAllowed = true;
+    if (table_exists($db, 'superadmin')) {
+        $chk2 = $db->prepare('SELECT COUNT(1) as c FROM superadmin WHERE username = :u');
+        $chk2->execute([':u' => $current]);
+        $r2 = $chk2->fetch(PDO::FETCH_ASSOC);
+        if ($r2 && intval($r2['c']) > 0) $isAllowed = true;
+    }
 }
 if (!$isAllowed) {
     http_response_code(403);
@@ -66,7 +67,7 @@ if ($row && intval($row['c']) > 0) {
 }
 
 $hash = password_hash($password, PASSWORD_DEFAULT);
-$ins = $db->prepare('INSERT INTO admins (username, password_hash) VALUES (:u, :h)');
+$ins = $db->prepare('INSERT INTO admins (username, password_hash, is_super) VALUES (:u, :h, 0)');
 $ins->execute([':u' => $username, ':h' => $hash]);
 
 echo json_encode(['ok' => true]);

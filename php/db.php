@@ -1,50 +1,112 @@
 <?php
 /**
  * archivo: db.php
- * función: Inicializa y devuelve conexión PDO a base de datos SQLite.
+ * función: Inicializa y devuelve conexión PDO a base de datos MySQL.
  * - Ejecuta migraciones automáticas para crear tablas si no existen.
- * - Configura WAL y busy_timeout para mejorar concurrencia.
+ * - Usa variables de entorno para host, usuario, contraseña y nombre de base de datos.
  *
  * Funciones principales:
- * - get_db(): Retorna conexión PDO singleton (con optimizaciones de concurrencia).
- * - migrate(): Crea tablas (disponibilidad, agendamientos, clientes, bloqueos_temporales, admins).
+ * - get_db(): Retorna conexión PDO singleton para MySQL.
+ * - migrate(): Crea tablas (disponibilidad, agendamientos, clientes, bloqueos_temporales, admins, superadmin).
  *
  * Incluido por todos los endpoints PHP del proyecto.
  */
 
+function get_db_config() {
+    return [
+        'host' => getenv('DB_HOST') ?: '127.0.0.1',
+        'port' => getenv('DB_PORT') ?: '3306',
+        'name' => getenv('DB_NAME') ?: 'agenda_db',
+        'user' => getenv('DB_USER') ?: 'root',
+        'pass' => getenv('DB_PASS') ?: '',
+        'charset' => getenv('DB_CHARSET') ?: 'utf8mb4',
+    ];
+}
+
 /**
  * get_db()
- * Retorna la conexión PDO singleton a la base de datos SQLite.
- * - Crea el directorio /data si no existe.
- * - Habilita foreign keys y modo WAL para mejor concurrencia.
- * - Ejecuta migrate() automáticamente para setup inicial.
+ * Retorna la conexión PDO singleton a la base de datos MySQL.
  * @return PDO
  */
 function get_db() {
     static $pdo = null;
     if ($pdo) return $pdo;
 
-    $dir = __DIR__ . "/../data";
-    if (!is_dir($dir)) mkdir($dir, 0755, true);
-    $path = $dir . "/database.sqlite";
+    $cfg = get_db_config();
+    $dsn = sprintf(
+        'mysql:host=%s;port=%s;dbname=%s;charset=%s',
+        $cfg['host'],
+        $cfg['port'],
+        $cfg['name'],
+        $cfg['charset']
+    );
 
-    $pdo = new PDO("sqlite:" . $path);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    // Foreign keys
-    $pdo->exec('PRAGMA foreign_keys = ON');
-    // Mejorar concurrencia: usar WAL y timeout para evitar "database is locked"
-    try {
-        $pdo->exec('PRAGMA journal_mode = WAL');
-    } catch (Exception $e) {
-        // ignore if not supported
-    }
-    try {
-        $pdo->exec('PRAGMA busy_timeout = 5000');
-    } catch (Exception $e) {
-        // ignore
-    }
+    $pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
+    $pdo->exec('SET NAMES utf8mb4');
 
     return $pdo;
+}
+
+function table_exists($db, $tableName) {
+    $escaped = str_replace("'", "''", $tableName);
+    $stmt = $db->query("SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = '{$escaped}'");
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return intval($row['c'] ?? 0) > 0;
+}
+
+function column_exists($db, $tableName, $columnName) {
+    $escapedTable = str_replace("'", "''", $tableName);
+    $escapedColumn = str_replace("'", "''", $columnName);
+    $stmt = $db->query("SELECT COUNT(*) AS c FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = '{$escapedTable}' AND column_name = '{$escapedColumn}'");
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return intval($row['c'] ?? 0) > 0;
+}
+
+function ensure_column($db, $tableName, $columnName, $definition) {
+    if (!column_exists($db, $tableName, $columnName)) {
+        $db->exec("ALTER TABLE `{$tableName}` ADD COLUMN {$definition}");
+    }
+}
+
+function sync_persona_lista($db, $row, $estado = 'atendido') {
+    if (!$row || !isset($row['id'])) return;
+    if ($estado !== 'atendido') return;
+
+    $now = time();
+    $stmt = $db->prepare('INSERT INTO personas_listas (
+        agendamiento_id, rut, nombre, apellido, correo, telefono, fecha, hora, tipo_tramite, estado, created_at, atendido_at
+    ) VALUES (
+        :agendamiento_id, :rut, :nombre, :apellido, :correo, :telefono, :fecha, :hora, :tipo_tramite, :estado, :created_at, :atendido_at
+    ) ON DUPLICATE KEY UPDATE
+        rut = VALUES(rut),
+        nombre = VALUES(nombre),
+        apellido = VALUES(apellido),
+        correo = VALUES(correo),
+        telefono = VALUES(telefono),
+        fecha = VALUES(fecha),
+        hora = VALUES(hora),
+        tipo_tramite = VALUES(tipo_tramite),
+        estado = VALUES(estado),
+        atendido_at = VALUES(atendido_at)');
+
+    $stmt->execute([
+        ':agendamiento_id' => intval($row['id']),
+        ':rut' => (string)($row['rut'] ?? ''),
+        ':nombre' => (string)($row['nombre'] ?? ''),
+        ':apellido' => (string)($row['apellido'] ?? ''),
+        ':correo' => (string)($row['correo'] ?? ''),
+        ':telefono' => (string)($row['telefono'] ?? ''),
+        ':fecha' => (string)($row['fecha'] ?? ''),
+        ':hora' => (string)($row['hora'] ?? ''),
+        ':tipo_tramite' => (string)($row['tipo_tramite'] ?? ''),
+        ':estado' => $estado,
+        ':created_at' => intval($row['created_at'] ?? $now),
+        ':atendido_at' => $now,
+    ]);
 }
 
 function normalize_rut($rut) {
@@ -127,124 +189,113 @@ function ensure_csrf_token($check = false) {
  * - agendamientos: Citas confirmadas y datos del usuario.
  * - bloqueos_temporales: Bloqueos TTL (15 min) durante confirmación.
  * - admins: Credenciales de administradores.
+ * - superadmin: Superadmins alternativos.
  * - Ejecutada automáticamente al incluir este archivo.
  */
 function migrate() {
     $db = get_db();
 
     $db->exec("CREATE TABLE IF NOT EXISTS disponibilidad (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        fecha TEXT NOT NULL,
-        hora_inicio TEXT NOT NULL,
-        hora_fin TEXT NOT NULL,
-        duracion_bloque INTEGER NOT NULL DEFAULT 20,
-        max_cupos INTEGER NOT NULL DEFAULT 30,
-        cupos_ocupados INTEGER NOT NULL DEFAULT 0,
-        tipo TEXT DEFAULT 'Ambos',
-        estado INTEGER NOT NULL DEFAULT 1
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        fecha VARCHAR(20) NOT NULL,
+        hora_inicio VARCHAR(10) NOT NULL,
+        hora_fin VARCHAR(10) NOT NULL,
+        duracion_bloque INT NOT NULL DEFAULT 20,
+        max_cupos INT NOT NULL DEFAULT 30,
+        cupos_ocupados INT NOT NULL DEFAULT 0,
+        tipo VARCHAR(50) DEFAULT 'Ambos',
+        estado TINYINT NOT NULL DEFAULT 1
     )");
 
-    // asegurar índice único por fecha
-    $db->exec('CREATE UNIQUE INDEX IF NOT EXISTS ux_disponibilidad_fecha ON disponibilidad(fecha)');
+    try {
+        $db->exec('CREATE UNIQUE INDEX ux_disponibilidad_fecha ON disponibilidad(fecha)');
+    } catch (Exception $e) {
+        // ignore if already exists
+    }
 
     $db->exec("CREATE TABLE IF NOT EXISTS agendamientos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        rut TEXT NOT NULL,
-        nombre TEXT,
-        apellido TEXT,
-        correo TEXT,
-        telefono TEXT,
-        fecha TEXT NOT NULL,
-        hora TEXT NOT NULL,
-        tipo_tramite TEXT,
-        estado TEXT NOT NULL DEFAULT 'confirmado',
-        created_at INTEGER NOT NULL
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        rut VARCHAR(20) NOT NULL,
+        nombre VARCHAR(255) NULL,
+        apellido VARCHAR(255) NULL,
+        correo VARCHAR(255) NULL,
+        telefono VARCHAR(20) NULL,
+        fecha VARCHAR(20) NOT NULL,
+        hora VARCHAR(10) NOT NULL,
+        tipo_tramite VARCHAR(100) NULL,
+        estado VARCHAR(50) NOT NULL DEFAULT 'confirmado',
+        created_at BIGINT NOT NULL
     )");
 
-    $db->exec("CREATE UNIQUE INDEX IF NOT EXISTS ux_agendamiento_unico ON agendamientos(rut, fecha, hora, tipo_tramite)");
+    try {
+        $db->exec('CREATE UNIQUE INDEX ux_agendamiento_unico ON agendamientos(rut, fecha, hora, tipo_tramite)');
+    } catch (Exception $e) {
+        // ignore if already exists
+    }
 
-    // Tabla de clientes para asignar un id único por persona (persistente)
+    $db->exec("CREATE TABLE IF NOT EXISTS personas_listas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        agendamiento_id INT NOT NULL UNIQUE,
+        rut VARCHAR(20) NOT NULL,
+        nombre VARCHAR(255) NULL,
+        apellido VARCHAR(255) NULL,
+        correo VARCHAR(255) NULL,
+        telefono VARCHAR(20) NULL,
+        fecha VARCHAR(20) NOT NULL,
+        hora VARCHAR(10) NOT NULL,
+        tipo_tramite VARCHAR(100) NULL,
+        estado VARCHAR(50) NOT NULL DEFAULT 'atendido',
+        created_at BIGINT NOT NULL,
+        atendido_at BIGINT NOT NULL
+    )");
+
+    try {
+        $db->exec("INSERT IGNORE INTO personas_listas (agendamiento_id, rut, nombre, apellido, correo, telefono, fecha, hora, tipo_tramite, estado, created_at, atendido_at)
+            SELECT id, rut, nombre, apellido, correo, telefono, fecha, hora, tipo_tramite, estado, created_at, created_at
+            FROM agendamientos
+            WHERE estado = 'atendido'");
+    } catch (Exception $e) {
+        // ignore if the table was just created or data is already present
+    }
+
     $db->exec("CREATE TABLE IF NOT EXISTS clientes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        rut TEXT NOT NULL UNIQUE,
-        nombre TEXT,
-        apellido TEXT,
-        correo TEXT,
-        telefono TEXT,
-        created_at INTEGER NOT NULL
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        rut VARCHAR(20) NOT NULL UNIQUE,
+        nombre VARCHAR(255) NULL,
+        apellido VARCHAR(255) NULL,
+        correo VARCHAR(255) NULL,
+        telefono VARCHAR(20) NULL,
+        created_at BIGINT NOT NULL
     )");
 
-    // Añadir columna cliente_id a agendamientos si no existe
-    $cols = $db->query("PRAGMA table_info(agendamientos)")->fetchAll(PDO::FETCH_ASSOC);
-    $hasClienteId = false;
-    foreach ($cols as $c) {
-        if ($c['name'] === 'cliente_id') { $hasClienteId = true; break; }
-    }
-    if (!$hasClienteId) {
-        try {
-            $db->exec("ALTER TABLE agendamientos ADD COLUMN cliente_id INTEGER NULL");
-        } catch (Exception $e) {
-            // ignore if cannot alter
-        }
-    }
+    ensure_column($db, 'agendamientos', 'cliente_id', 'cliente_id BIGINT NULL');
 
     $db->exec("CREATE TABLE IF NOT EXISTS bloqueos_temporales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        rut TEXT,
-        fecha TEXT NOT NULL,
-        hora TEXT NOT NULL,
-        token TEXT,
-        expires_at INTEGER NOT NULL
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        rut VARCHAR(20) NULL,
+        fecha VARCHAR(20) NOT NULL,
+        hora VARCHAR(10) NOT NULL,
+        token VARCHAR(255) NULL,
+        expires_at BIGINT NOT NULL
     )");
 
-    $cols = $db->query("PRAGMA table_info(bloqueos_temporales)")->fetchAll(PDO::FETCH_ASSOC);
-    $hasToken = false;
-    foreach ($cols as $c) {
-        if ($c['name'] === 'token') { $hasToken = true; break; }
-    }
-    if (!$hasToken) {
-        try {
-            $db->exec("ALTER TABLE bloqueos_temporales ADD COLUMN token TEXT");
-        } catch (Exception $e) {
-            // ignore if cannot alter
-        }
-    }
+    ensure_column($db, 'bloqueos_temporales', 'token', 'token VARCHAR(255) NULL');
 
-    // tabla de administradores para login
     $db->exec("CREATE TABLE IF NOT EXISTS admins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL
     )");
 
-    // Añadir columna 'is_super' a admins si no existe (permite un superadmin)
-    $cols = $db->query("PRAGMA table_info(admins)")->fetchAll(PDO::FETCH_ASSOC);
-    $hasIsSuper = false;
-    foreach ($cols as $c) {
-        if ($c['name'] === 'is_super') { $hasIsSuper = true; break; }
-    }
-    if (!$hasIsSuper) {
-        try {
-            $db->exec("ALTER TABLE admins ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0");
-        } catch (Exception $e) {
-            // ignore if cannot alter
-        }
-    }
+    ensure_column($db, 'admins', 'is_super', 'is_super TINYINT NOT NULL DEFAULT 0');
 
-    // Asegurar columna 'tipo' en disponibilidad si la tabla existía antes
-    $cols = $db->query("PRAGMA table_info(disponibilidad)")->fetchAll(PDO::FETCH_ASSOC);
-    $hasTipo = false;
-    foreach ($cols as $c) {
-        if ($c['name'] === 'tipo') { $hasTipo = true; break; }
-    }
-    if (!$hasTipo) {
-        try {
-            $db->exec("ALTER TABLE disponibilidad ADD COLUMN tipo TEXT DEFAULT 'Ambos'");
-        } catch (Exception $e) {
-            // ignore if cannot alter
-        }
-    }
+    $db->exec("CREATE TABLE IF NOT EXISTS superadmin (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL
+    )");
 
+    ensure_column($db, 'disponibilidad', 'tipo', "tipo VARCHAR(50) NULL DEFAULT 'Ambos'");
 }
 
 /**

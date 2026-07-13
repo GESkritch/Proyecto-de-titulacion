@@ -48,6 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const tableEl = tablaSolicitudes ? tablaSolicitudes.closest('table') : null;
   const existingAdmins = document.getElementById('existingAdmins');
   const btnBorrarAdmin = document.getElementById('btnBorrarAdmin');
+  const exportStartDate = document.getElementById('exportStartDate');
+  const exportEndDate = document.getElementById('exportEndDate');
+  const btnExportarExcel = document.getElementById('btnExportarExcel');
 
   const modalEditar = document.getElementById('modalEditar');
   const btnCerrar = document.getElementById('btnCerrarModal');
@@ -387,6 +390,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderTabla(data) {
     tablaSolicitudes.innerHTML = "";
 
+    const isSuperAdmin = Boolean(document.body.dataset.isSuperAdmin === '1');
+
     data.forEach(s => {
       const tr = document.createElement('tr');
 
@@ -406,6 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
       addTd(s.hora_inicio);
       addTd(s.hora_fin);
       addTd(s.nombres);
+      addTd(s.apellidos || '');
       addTd(s.rut);
       addTd(s.telefono);
       addTd(s.correo);
@@ -434,7 +440,16 @@ document.addEventListener('DOMContentLoaded', () => {
       btnAtendido.textContent = 'Atendido';
       btnAtendido.addEventListener('click', () => marcarAtendido(s.id));
 
+      const btnEliminar = document.createElement('button');
+      btnEliminar.textContent = 'Eliminar';
+      btnEliminar.style.background = '#c0392b';
+      btnEliminar.style.color = '#fff';
+      btnEliminar.addEventListener('click', () => eliminarSolicitud(s.id));
+
       tdActions.append(btnEdit, btnCancel, btnConfirm, btnAtendido);
+      if (isSuperAdmin) {
+        tdActions.appendChild(btnEliminar);
+      }
       tr.appendChild(tdActions);
       tablaSolicitudes.appendChild(tr);
     });
@@ -543,6 +558,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     renderTabla(filtradas);
     tableEl.style.display = 'table';
+  });
+
+  if (btnExportarExcel) btnExportarExcel.addEventListener('click', async () => {
+    const inicio = exportStartDate ? exportStartDate.value : '';
+    const fin = exportEndDate ? exportEndDate.value : '';
+    if (!inicio || !fin) {
+      alert('Seleccione una fecha de inicio y una de término');
+      return;
+    }
+
+    try {
+      const res = await fetch('../php/exportar_excel.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha_inicio: inicio, fecha_fin: fin })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'No se pudo exportar');
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `registro_${inicio}_a_${fin}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.message || 'Error al generar el archivo');
+    }
   });
 
   /* ================== MODAL ================== */
@@ -654,6 +704,26 @@ document.addEventListener('DOMContentLoaded', () => {
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ id })
     });
+
+    await cargarSolicitudes();
+    renderTabla(solicitudesGlobal);
+  }
+
+  async function eliminarSolicitud(id) {
+    if (!confirm('¿Eliminar esta solicitud? Esta acción solo debe usarse en casos de emergencia o error.')) return;
+
+    const res = await fetch('../php/eliminar_solicitud.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      alert(data.error || 'No se pudo eliminar la solicitud');
+      return;
+    }
 
     await cargarSolicitudes();
     renderTabla(solicitudesGlobal);

@@ -459,7 +459,7 @@ CREATE TABLE admins (
 **Proceso:**
 1. Verificar sesión admin
 2. UPDATE en tabla `agendamientos`
-3. Si es "atendido": puede liberar cupo (opcional lógica)
+3. Si cambia a "atendido", se libera el cupo correspondiente.
 
 **Output:**
 - ✅ Cita actualizada
