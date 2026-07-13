@@ -31,18 +31,18 @@ Raíz:
 - .venv/ (entorno virtual opcional)
  - .gitattributes
 
-Carpeta `public/`:
+Archivos públicos en la raíz del proyecto:
 
-- public/index.html
-- public/timeout.html
-- public/css/calendar.css
-- public/css/main.css
-- public/css/modal.css
-- public/js/api.js
-- public/js/calendar.js
-- public/js/form.js
-- public/js/index_login.js
-- public/js/ui.js
+- index.html
+- timeout.html
+- css/calendar.css
+- css/main.css
+- css/modal.css
+- js/api.js
+- js/calendar.js
+- js/form.js
+- js/index_login.js
+- js/ui.js
 
 Carpeta `admin/`:
 

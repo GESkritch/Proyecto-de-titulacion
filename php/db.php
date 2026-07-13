@@ -12,14 +12,66 @@
  * Incluido por todos los endpoints PHP del proyecto.
  */
 
+function load_dotenv($path) {
+    if (!is_readable($path)) {
+        return [];
+    }
+
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    $data = [];
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || substr($line, 0, 1) === '#') {
+            continue;
+        }
+
+        $parts = explode('=', $line, 2);
+        if (count($parts) !== 2) {
+            continue;
+        }
+
+        $name = trim($parts[0]);
+        $value = trim($parts[1]);
+
+        $firstChar = substr($value, 0, 1);
+        $lastChar = substr($value, -1);
+        if (($firstChar === '"' && $lastChar === '"') || ($firstChar === "'" && $lastChar === "'")) {
+            $value = substr($value, 1, -1);
+        }
+
+        $data[$name] = $value;
+    }
+
+    return $data;
+}
+
+function get_env_value($name, $default = null) {
+    $value = getenv($name);
+    if ($value !== false) {
+        return $value;
+    }
+
+    static $dotenv = null;
+    if ($dotenv === null) {
+        $dotenv = load_dotenv(dirname(__DIR__, 1) . '/.env');
+    }
+
+    if (isset($dotenv[$name])) {
+        return $dotenv[$name];
+    }
+
+    return $default;
+}
+
 function get_db_config() {
     return [
-        'host' => getenv('DB_HOST') ?: '127.0.0.1',
-        'port' => getenv('DB_PORT') ?: '3306',
-        'name' => getenv('DB_NAME') ?: 'agenda_db',
-        'user' => getenv('DB_USER') ?: 'root',
-        'pass' => getenv('DB_PASS') ?: '',
-        'charset' => getenv('DB_CHARSET') ?: 'utf8mb4',
+        'host' => get_env_value('DB_HOST', '127.0.0.1'),
+        'port' => get_env_value('DB_PORT', '3306'),
+        'name' => get_env_value('DB_NAME', 'agenda_db'),
+        'user' => get_env_value('DB_USER', 'root'),
+        'pass' => get_env_value('DB_PASS', ''),
+        'charset' => get_env_value('DB_CHARSET', 'utf8mb4'),
     ];
 }
 
