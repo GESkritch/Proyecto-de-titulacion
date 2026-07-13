@@ -7,4 +7,4 @@
 session_start();
 session_destroy();
 // Redirigir al inicio público después de cerrar sesión
-header("Location: ../public/index.html");
+header("Location: ../index.html");

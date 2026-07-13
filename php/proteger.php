@@ -9,7 +9,7 @@ session_start();
 
 if (!isset($_SESSION["admin"])) {
   // Si no hay sesión, redirigir al inicio público
-  header("Location: ../public/index.html");
+  header("Location: ../index.html");
   exit;
 }
 
