@@ -1,7 +1,8 @@
-Antes de todo, el usuario creado para pruebas es:
-usuario: admin, 
-contraseña: 123456
-en el readme se puede leer lo siguiente pero lo anotare por si acaso, el superadmin(admin) puede crear cuentas de administrador(con menos privilegios pero teniendo los esenciales)
+Usuario1(SuperAdmin): admin - contraseña: 123456
+
+Usuario2(Admin): GESkritch - contraseña: 1234
+
+Usuario3: el usuario 3 es el usuario comun que ingrese al sitio, es quien puede agendar la hora de atencion.
 
 # Resumen del proyecto: Agendamiento - Depto. Transporte
 
